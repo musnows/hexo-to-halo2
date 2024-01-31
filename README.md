@@ -68,9 +68,7 @@ abbrlink: 永久链接
 
 注意，abbrlink基于`hexo-abbrlink`插件，如果你的hexo博客没有安装此插件，front-matter中不会有该字段，这对上传脚本不影响。如果你的博客使用了该插件，脚本则会将abbrlink作为halo2内的`{slug}`进行上传，这样能保证hexo和halo2博客中文章链接一致，能实现无损迁移。
 
-## 已知问题
 
-halo2的文章发布时间字段暂时没有找到方法设置。
 
 # 参考
 

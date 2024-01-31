@@ -6,7 +6,7 @@ from .JsonParse import open_json_file
 
 UserConfig = open_json_file("./config/config.json")
 """用户配置项目"""
-assert('published' in UserConfig) # 配置检查
+assert ('published' in UserConfig)  # 配置检查
 
 BASE_URL = UserConfig["haloSite"]
 # 在个人中心中的个人令牌里面生成
@@ -52,7 +52,7 @@ def post_page(raw_content: str,
                     "cover": cover,
                     "deleted": False,
                     "publish": False,
-                    "publishTime": None,
+                    "publishTime": publish_time,
                     "pinned": pinned,
                     "allowComment": allow_comment,
                     "visible": "PUBLIC" if is_public else "PRIVATE",
@@ -149,7 +149,7 @@ def create_category(name: str,
                     cover: str = "",
                     description: str = ""):
     """创建分组
-    
+
     - name: category的名字
     - color: category的颜色
     - cover: category的展示封面

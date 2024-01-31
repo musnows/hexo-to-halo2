@@ -36,7 +36,7 @@ def main(folder_path: str):
     tag_dict, category_dict = {}, {}
     for md_file_path in file_list:
         try:
-            tag_list,category_list = [],[]
+            tag_list, category_list = [], []
             # 读取文件
             with open(md_file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
@@ -77,13 +77,19 @@ def main(folder_path: str):
 
                 category_list.append(category_dict[cate]['metadata']['name'])
 
-
             # 这里的key都是从frontmatter中解析出来的
             # 如果你的hexo主题使用的frontmatter不同，可以修改这里的key值
             if 'abbrlink' in frontmatter_dict:
                 slug = frontmatter_dict['abbrlink']
             else:
                 slug = Halo2Uploader.slugify(frontmatter_dict['title'])
+            # 上传时间解析，可以参考posts接口get返回值中的格式进行解析
+            # "publishTime": "2024-01-22T05:12:33.716773059Z"
+            publish_time = None
+            if 'date' in frontmatter_dict:
+                microseconds_str = f"{frontmatter_dict['date'].microsecond:0<9}" # 9位，不够的后补0
+                publish_time = f"{frontmatter_dict['date'].strftime('%Y-%m-%dT%H:%M:%S')}.{microseconds_str}Z"
+                print(i,"[publish_time]",publish_time)
             # 上传文章
             upload_ret = Halo2Uploader.post_page(
                 content,
@@ -93,8 +99,7 @@ def main(folder_path: str):
                 category_list,
                 tag_list,
                 pinned=if_pinned,
-                publish_time=frontmatter_dict['date'].strftime(
-                    "%Y-%m-%d %H:%M:%S"))
+                publish_time=publish_time)
             print(i, '[upload]', upload_ret)
             # 发布文章
             if Halo2Uploader.UserConfig['published']:

@@ -17,18 +17,31 @@ BASE_HEADER = {
 }
 
 
-def post_page(raw_content: str,
-              title: str,
-              slug: str,
-              cover: str,
-              categories: list[str],
-              tags: list[str],
-              pinned: bool = False,
-              allow_comment: bool = True,
-              is_public: bool = True,
-              publish_time=None):
+def get_pages():
+    """获取所有文章的列表"""
+    try:
+        posts_url = f"/apis/api.console.halo.run/v1alpha1/posts"
+        ret = requests.get(url=BASE_URL + posts_url,
+                           headers=BASE_HEADER)  # 这里要用json来传data
+        # print(ret.text)
+        return ret.json()
+    except:
+        print(traceback.format_exc())
+        return {}
+
+
+def update_page(raw_content: str,
+                title: str,
+                slug: str,
+                cover: str,
+                categories: list[str],
+                tags: list[str],
+                pinned: bool = False,
+                allow_comment: bool = True,
+                is_public: bool = True,
+                publish_time=None):
     """
-    上传文章，使用本函数前需要在halo2中安装任意markdown编辑器插件
+    如果该文章已有，则调用update方法
 
     - raw_content：原始md文件
     - title: 文章标题
@@ -42,7 +55,8 @@ def post_page(raw_content: str,
     - publish_time: 更新时间（暂时没有找到调用方式）
     """
     try:
-        post_url = f"/apis/api.console.halo.run/v1alpha1/posts"
+        posts_url = f"/apis/api.console.halo.run/v1alpha1/posts/{slug}"
+        posts_url_content = posts_url + "/content"
         data = {
             "post": {
                 "spec": {
@@ -77,14 +91,87 @@ def post_page(raw_content: str,
                 "rawType": "markdown"
             }
         }
-        ret = requests.post(url=BASE_URL + post_url,
+        # 更新
+        ret1 = requests.put(url=BASE_URL + posts_url,
+                            json=data["post"],
+                            headers=BASE_HEADER)  # 这里要用json来传data
+        ret2 = requests.put(url=BASE_URL + posts_url_content,
+                            json=data["content"],
+                            headers=BASE_HEADER)  # 这里要用json来传data
+        return (ret1.json(), ret2.json())
+    except:
+        print(traceback.format_exc())
+        return (None,None)
+
+
+def post_page(raw_content: str,
+              title: str,
+              slug: str,
+              cover: str,
+              categories: list[str],
+              tags: list[str],
+              pinned: bool = False,
+              allow_comment: bool = True,
+              is_public: bool = True,
+              publish_time=None):
+    """
+    上传文章，使用本函数前需要在halo2中安装任意markdown编辑器插件
+
+    - raw_content：原始md文件
+    - title: 文章标题
+    - slug: 文章永久链接（abbrlink）
+    - cover: 文章封面链接
+    - categories: 文章分类
+    - tags: 文章tag
+    - pinned: 是否置顶
+    - allow_comment: 是否允许评论
+    - is_public: 是否公开
+    - publish_time: 更新时间（暂时没有找到调用方式）
+    """
+    try:
+        posts_url = f"/apis/api.console.halo.run/v1alpha1/posts"
+        data = {
+            "post": {
+                "spec": {
+                    "title": title,
+                    "slug": slug,
+                    "template": "",
+                    "cover": cover,
+                    "deleted": False,
+                    "publish": False,
+                    "publishTime": publish_time,
+                    "pinned": pinned,
+                    "allowComment": allow_comment,
+                    "visible": "PUBLIC" if is_public else "PRIVATE",
+                    "priority": 0,
+                    "excerpt": {
+                        "autoGenerate": True,
+                        "raw": ""
+                    },
+                    "categories": categories,
+                    "tags": tags,
+                    "htmlMetas": []
+                },
+                "apiVersion": "content.halo.run/v1alpha1",
+                "kind": "Post",
+                "metadata": {
+                    "name": slug
+                }
+            },
+            "content": {
+                "raw": raw_content,
+                "content": render_markdown(raw_content),
+                "rawType": "markdown"
+            }
+        }
+        ret = requests.post(url=BASE_URL + posts_url,
                             json=data,
                             headers=BASE_HEADER)  # 这里要用json来传data
         # print(ret.text)
-        return ret.json()
+        return (ret.json(),{})
     except:
         print(traceback.format_exc())
-        return {}
+        return (None,None)
 
 
 def publish_page(slug: str):

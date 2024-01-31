@@ -41,6 +41,8 @@ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 
 将markdown的md源文件放入文件夹，并复制文件夹路径。为了避免脚本处理出现异常，请将md源文件**复制一份**再调用本脚本。
 
+运行脚本前，请先在halo2系统中安装任意一个markdown编辑器插件。
+
 ```
 python main.py 文件夹路径
 ```

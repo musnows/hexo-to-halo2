@@ -33,9 +33,10 @@ def main(folder_path: str):
     print("[begin]", folder_path)
     i = 0
     file_list = get_files_list(folder_path)
-    tag_list, category_list = [], []
+    tag_dict, category_dict = {}, {}
     for md_file_path in file_list:
         try:
+            tag_list,category_list = [],[]
             # 读取文件
             with open(md_file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
@@ -59,17 +60,23 @@ def main(folder_path: str):
 
             # 创建halo2中的tag和分类
             for tag in frontmatter_dict['tags']:
-                if tag not in tag_list:
+                if tag not in tag_dict:
                     tag_ret = Halo2Uploader.create_tag(tag)
                     print(i, '[tag]', tag_ret)
-                    tag_list.append(tag)
+                    tag_dict[tag] = tag_ret
                     time.sleep(0.1)
+
+                tag_list.append(tag_dict[tag]['metadata']['name'])
+
             for cate in frontmatter_dict['categories']:
-                if cate not in category_list:
+                if cate not in category_dict:
                     cate_ret = Halo2Uploader.create_category(cate)
-                    print(i, '[category]', tag_ret)
-                    category_list.append(cate)
+                    print(i, '[category]', cate_ret)
+                    category_dict[cate] = cate_ret
                     time.sleep(0.1)
+
+                category_list.append(category_dict[cate]['metadata']['name'])
+
 
             # 这里的key都是从frontmatter中解析出来的
             # 如果你的hexo主题使用的frontmatter不同，可以修改这里的key值
@@ -83,8 +90,8 @@ def main(folder_path: str):
                 frontmatter_dict['title'],
                 slug,
                 frontmatter_dict['cover'],
-                frontmatter_dict['categories'],
-                frontmatter_dict['tags'],
+                category_list,
+                tag_list,
                 pinned=if_pinned,
                 publish_time=frontmatter_dict['date'].strftime(
                     "%Y-%m-%d %H:%M:%S"))

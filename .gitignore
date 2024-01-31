@@ -1,0 +1,7 @@
+test_code/
+config/config.json
+
+# python
+__pycache__/
+venv/
+.vscode/

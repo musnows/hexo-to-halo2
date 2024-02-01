@@ -34,10 +34,15 @@ def main(folder_path: str):
     i = 0
     file_list = get_files_list(folder_path)
     tag_dict, category_dict = {}, {}
-    # posts_dict = Halo2Uploader.get_pages()  # halo2已有的所有文章的列表
+    # 初始化tag和category字典
+    for tag in Halo2Uploader.get_tags_list()["items"]:
+        tag_dict[tag['spec']['displayName']] = tag
+    for cate in Halo2Uploader.get_categories_list()["items"]:
+        category_dict[cate['spec']['displayName']] = cate
+
+    # 开始遍历本地文件
     for md_file_path in file_list:
         try:
-            tag_list, category_list = [], []
             # 读取文件
             with open(md_file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
@@ -59,14 +64,15 @@ def main(folder_path: str):
             # 上传时去除md文件中的frontmatter
             content = FormatterParse.remove_frontmatter(content)
 
-            # 创建halo2中的tag和分类
+            # 如果文件中指定tag不存在，则创建halo2中的tag和分类
+            tag_list, category_list = [], []
             for tag in frontmatter_dict['tags']:
                 if tag not in tag_dict:
                     tag_ret = Halo2Uploader.create_tag(tag)
                     print(i, '[tag]', tag_ret)
                     tag_dict[tag] = tag_ret
                     time.sleep(0.1)
-
+                # 最终创建文章需要使用这个列表
                 tag_list.append(tag_dict[tag]['metadata']['name'])
 
             for cate in frontmatter_dict['categories']:
@@ -75,7 +81,7 @@ def main(folder_path: str):
                     print(i, '[category]', cate_ret)
                     category_dict[cate] = cate_ret
                     time.sleep(0.1)
-
+                # 最终创建文章需要使用这个列表
                 category_list.append(category_dict[cate]['metadata']['name'])
 
             # 这里的key都是从frontmatter中解析出来的
@@ -91,14 +97,17 @@ def main(folder_path: str):
                 microseconds_str = f"{frontmatter_dict['date'].microsecond:0<9}"  # 9位，不够的后补0
                 publish_time = f"{frontmatter_dict['date'].strftime('%Y-%m-%dT%H:%M:%S')}.{microseconds_str}Z"
                 print(i, "[publish_time]", publish_time)
-            # 上传文章
-            upload_flag = True
-            # for post_info in posts_dict['items']:
-            #     if post_info["post"]["spec"]["slug"] == slug:
-            #         upload_flag = False
-            #         print(i, "[find] slug already exists", slug)
-            #         break
+            # 遍历已有文章列表，找到相同slug的文章时需要调用更新接口
+            upload_flag = False  # 为False代表调用更新接口而不是上传接口
+            post_info_ret = Halo2Uploader.get_posts_info(slug)
+            # 检测是否有slug相同的文章,404代表没有找到
+            if 'status' in post_info_ret and post_info_ret['status'] == 404:
+                upload_flag = True
+                print(i, "[post_info] cannot find slug in remote ", slug)
+            else:
+                print(i, "[post_info] find slug in remote ", slug)
 
+            # 上传或更新文章
             upload_ret = ({"title": ""}, {})
             if upload_flag:  # 上传文章
                 upload_ret = Halo2Uploader.post_page(content,
@@ -110,24 +119,26 @@ def main(folder_path: str):
                                                      pinned=if_pinned,
                                                      publish_time=publish_time)
                 print(i, '[post_page]', upload_ret[0])
-            # # 更新文章
-            # if not upload_flag or ('title' in upload_ret[0] and 'Duplicate' in upload_ret[0]['title']):
-            #     upload_ret = Halo2Uploader.update_page(
-            #         content,
-            #         frontmatter_dict['title'],
-            #         slug,
-            #         frontmatter_dict['cover'],
-            #         category_list,
-            #         tag_list,
-            #         pinned=if_pinned,
-            #         publish_time=publish_time)
-            #     print(i, '[update]', upload_ret[0], "\n", upload_ret[1])
+                # 文章slug重复，无法上传
+                if ('title' in upload_ret[0] and 'Duplicate' in upload_ret[0]['title']):
+                    print(i,'[ERROR] Duplicate slug, skip this post')
+                    continue
+            else:# 更新文章
+                upload_ret = Halo2Uploader.update_page(slug,
+                    content,
+                    frontmatter_dict['title'],
+                    frontmatter_dict['cover'],
+                    category_list,
+                    tag_list,
+                    publish_time=publish_time)
+                print(i, '[update]', upload_ret[0], "\n", upload_ret[1])
 
             # 发布文章
             if Halo2Uploader.UserConfig['published']:
                 publish_ret = Halo2Uploader.publish_page(
                     frontmatter_dict['abbrlink'])
-            print(i, '[publish]', publish_ret)
+                print(i, '[publish]', publish_ret)
+            # 序号加一
             i += 1
             time.sleep(0.1)
         except:
